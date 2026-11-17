@@ -387,7 +387,7 @@ details.rules:not([open]){position:static!important;width:100%;padding:0;backgro
   <div class="gcol"><button class="peek gb">お墓を見る</button><div class="grave" id="pgrave"><span class="gl">お墓</span><div class="gi" id="pgi"></div></div></div>
 </div>
 <div class="detail" id="detail"></div>
-<div class="final" id="final" hidden><div class="fbox"><div class="ft" id="ft"></div><div class="fs" id="fs"></div><button class="alt main" id="fre">もう一度あそぶ</button></div></div>
+<div class="final" id="final" hidden><div class="fbox"><div class="ft" id="ft"></div><div class="fs" id="fs"></div><button class="alt main" id="fre">もう一度あそぶ</button><button class="alt" id="fmenu" hidden>タイトルに戻る</button></div></div>
 <div class="peekbox" id="gravebox" hidden></div>
 </main>
 <script>
@@ -627,8 +627,14 @@ $("peek").onclick=function(){var b=$("peekbox");b.hidden=!b.hidden;this.textCont
 $("peekbox").onclick=function(){$("peek").click()};
 function showFinal(){var f=$("final");$("ft").textContent=ps>cs?ME+"の勝ち！":ps<cs?OPP+"の勝ち":"ひきわけ";$("ft").className="ft "+(ps>cs?"w":ps<cs?"l":"");$("fs").textContent=ME+" "+ps+" pt　"+OPP+" "+cs+" pt";
   if(NET&&NET.on&&!NET.paid){NET.paid=true;setPending(false);var d=ps>cs?10:ps<cs?-10:0,t=addPt(d);syncPt(d);$("fs").appendChild(document.createElement("br"));$("fs").appendChild(document.createTextNode("ポイント "+ptText(d,t)))}
+  var on=!!(NET&&NET.on);
+  $("fre").textContent=on?"次の対戦":"もう一度あそぶ";$("fmenu").hidden=!on;
   f.hidden=false}
-$("fre").onclick=function(){$("final").hidden=true;restartGame()};
+$("fre").onclick=function(){
+  var on=!!(NET&&NET.on);$("final").hidden=true;
+  if(on){leaveRoom();showMenu();applyName();randomMatch(0)}else restartGame();
+};
+$("fmenu").onclick=function(){$("final").hidden=true;leaveRoom();showMenu()};
 $("final").onclick=function(e){if(e.target===this)this.hidden=true};
 function slotShuffle(p,c,em,ec){
   var pe=$("pi"),ce=$("ci"),pf=$("pf"),cf=$("cf"),t0=Date.now();
@@ -727,10 +733,26 @@ function syncPt(d){
     });
   });
 }
+var nameT=0;
+function syncName(cb){
+  var nm=(($("m-name").value||"").trim().slice(0,8))||"あなた";
+  loadFB(function(db){
+    if(!db){if(cb)cb();return}
+    loadAuth(function(uid){
+      if(!uid){if(cb)cb();return}
+      var r=db.ref("ranking/"+uid);
+      r.once("value").then(function(sn){
+        var v=sn.val();
+        if(v&&typeof v.p==="number"&&v.n!==nm)return r.child("n").set(nm);
+      }).catch(function(){}).then(function(){if(cb)cb()});
+    });
+  });
+}
 function showRank(){
   setView("rank");var box=$("rklist");box.innerHTML="";var me=$("rkme");me.innerHTML="";
   function msg(t){box.innerHTML="";var d=document.createElement("div");d.className="e";d.textContent=t;box.appendChild(d)}
   msg("読み込み中…");
+  syncName(function(){
   loadFB(function(db){
     if(!db){msg("つなげませんでした");return}
     db.ref("ranking").orderByChild("p").limitToLast(30).once("value").then(function(sn){
@@ -762,6 +784,7 @@ function showRank(){
         row.appendChild(r1);row.appendChild(r2);row.appendChild(r3);box.appendChild(row);
       });
     },function(){msg("つなげませんでした")});
+  });
   });
 }
 function deckStr(){return deck().join(",")}
@@ -949,7 +972,7 @@ $("m-cpu").onclick=startCpu;
 $("m-about").onclick=function(){var d=document.querySelector("details.rules");d.open=true;d.scrollTop=0};
 function applyName(){var v=($("m-name").value||"").trim().slice(0,8);ME=v||"あなた";WHO[0]=ME;try{localStorage.setItem("eat10name",v)}catch(e){}}
 try{$("m-name").value=localStorage.getItem("eat10name")||""}catch(e){}
-$("m-name").oninput=applyName;
+$("m-name").oninput=function(){applyName();clearTimeout(nameT);nameT=setTimeout(function(){syncName()},1000)};
 $("m-rand").onclick=function(){setView("on")};
 $("m-start").onclick=function(){applyName();randomMatch(0)};
 $("m-rank2").onclick=function(){showRank()};
