@@ -354,7 +354,7 @@ details.rules:not([open]){position:static!important;width:100%;padding:0;backgro
 <p><b>EAT10は食物連鎖を元にした生物バトルゲーム！！</b><br>数字の強さだけが全てじゃない。<br>ターンを重ねるごとに心理戦に変わっていく弱肉強食ゲーム！！<br>カードを同時に出して数字が大きい方の勝ち！！</p>
 <ol class="rl"><li>10枚のカードをシャッフルし、上から５枚引いて手札とする。</li><li>各プレイヤーは同時にカードを場に出す。</li><li>右上の数字が一番大きいプレイヤーに１p。<br>ただし、わざ次第で小さい数字でも勝てるようになる。</li><li>出したカードはお墓に行き、カードを１枚引いてターン終了。<br>合計５ターンで一番ポイントを取ったプレイヤーの勝利。</li></ol>
 <p><b>細かいルール</b></p>
-<ul class="rl"><li>同じ数字の場合DRAWとなりポイントは入らない。</li><li>所持ポイントは０より小さい数字にならない。</li><li>後出し系のわざ（チョウ・ネコ・イノシシ）のわざを使う順番は、数字が小さいカードから優先して使える。</li></ul>
+<ul class="rl"><li>勝敗は数字よりわざが優先される。</li><li>同じ数字の場合DRAWとなりポイントは入らない。</li><li>所持ポイントは０より小さい数字にならない。</li><li>後出し系のわざ（チョウ・ネコ・イノシシ）のわざを使う順番は、数字が小さいカードから優先して使える。</li></ul>
   <p><b>カード一覧</b></p>
   <div class="list" id="list"></div>
 </details>
@@ -759,6 +759,7 @@ function showRank(){
       var a=[];sn.forEach(function(c){var v=c.val();if(v&&typeof v.p==="number")a.push({k:c.key,n:String(v.n||"").slice(0,8),p:v.p})});
       a.reverse();box.innerHTML="";
       var myp=getPt();
+      function rankOf(p){var r=1;for(var j=0;j<a.length;j++)if(a[j].p>p)r++;return r}
       function showMe(rk){
         me.innerHTML="";
         var nm=(($("m-name").value||"").trim().slice(0,8))||"あなた";
@@ -769,16 +770,16 @@ function showRank(){
       }
       (function(){
         var idx=-1;a.forEach(function(x,i){if(UID&&x.k===UID)idx=i});
-        if(idx>=0){myp=a[idx].p;showMe(idx+1);return}
+        if(idx>=0){myp=a[idx].p;showMe(rankOf(myp));return}
         loadAuth(function(u){
-          if(u){for(var i=0;i<a.length;i++)if(a[i].k===u){myp=a[i].p;showMe(i+1);return}}
+          if(u){for(var i=0;i<a.length;i++)if(a[i].k===u){myp=a[i].p;showMe(rankOf(myp));return}}
           try{db.ref("ranking").orderByChild("p").startAt(myp+1).once("value").then(function(q){showMe(q.numChildren()+1)},function(){showMe(0)})}catch(e){showMe(0)}
         });
       })();
       if(!a.length){msg("まだ誰もいません");return}
       a.forEach(function(x,i){
         var row=document.createElement("div");row.className="r"+(x.k===UID?" me":"");
-        var r1=document.createElement("i");r1.textContent=(i+1)+"位";
+        var r1=document.createElement("i");var rk=1;for(var j=0;j<a.length;j++)if(a[j].p>x.p)rk++;r1.textContent=rk+"位";
         var r2=document.createElement("span");r2.textContent=x.n||"-";
         var r3=document.createElement("b");r3.textContent=x.p+"P";
         row.appendChild(r1);row.appendChild(r2);row.appendChild(r3);box.appendChild(row);
