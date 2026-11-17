@@ -48,6 +48,8 @@ h1{font-size:22px;font-weight:900;margin:0}
 .peek{font-family:inherit;font-size:10px;font-weight:700;padding:3px 6px;border-radius:8px;border:1px solid rgba(244,239,227,.5);background:none;color:var(--text);cursor:pointer;white-space:nowrap}
 .peekbox{background:var(--panel);border-radius:14px;padding:10px 14px;font-size:13px}
 .peekbox[hidden]{display:none}
+.tm{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:30;font-size:13px;font-weight:900;color:#fff;background:rgba(0,0,0,.45);padding:3px 12px;border-radius:12px;pointer-events:none}
+.tm[hidden]{display:none}
 .pk{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
 .pk img{width:100%;border-radius:6px;display:block}
 .battle{display:flex;justify-content:center;align-items:center;gap:12px}
@@ -376,6 +378,7 @@ details.rules:not([open]){position:static!important;width:100%;padding:0;backgro
   <div class="deck" style="grid-column:1;grid-row:3"><div class="pile"></div></div>
   <div style="grid-column:2;grid-row:3"><button class="go" id="go" disabled>EAT?</button></div>
 </div>
+<div class="tm" id="tm" hidden></div>
 <div class="peekbox" id="peekbox" hidden></div>
 <div class="msg" id="msg"></div>
 <ul class="steps" id="steps"></ul>
@@ -507,6 +510,27 @@ function init(decks){
   setTimeout(dealAnim,0);
   reset();draw();
 }
+var TURNMS=60000,tkRound=0,tkSp=false,tkEnd=0;
+function tmShow(txt){var e=$("tm");e.textContent=txt||"";e.hidden=!txt}
+setInterval(function(){
+  if(!(NET&&NET.on)){tkRound=0;tkSp=false;tmShow("");return}
+  var now=Date.now(),sp=$("spider").classList.contains("on");
+  if(round>R||(busy&&!sp)){tkRound=0;tkSp=false;tmShow("");return}
+  if(sp){
+    if(!tkSp){tkSp=true;tkEnd=now+TURNMS}
+  }else{
+    if(tkSp){tkSp=false;tkRound=0}
+    if(tkRound!==round){tkRound=round;tkEnd=now+TURNMS}
+  }
+  var left=Math.ceil((tkEnd-now)/1000);
+  if(left>0){tmShow("のこり "+left+" 秒");return}
+  tmShow("");
+  if(sp){tkSp=false;$("sno").click();return}
+  tkRound=0;
+  if(!ph.length)return;
+  if(locked)reset();
+  sel=ph[0];draw();play();
+},500);
 function play(){
   if(busy||sel===null)return;
   busy=true;$("go").disabled=true;
